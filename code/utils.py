@@ -70,11 +70,11 @@ def init_modules(modules, w_init='kaiming_uniform'):
                     _init(param)
 
 
-def load_vocab():
+def load_vocab(cfg):
     def invert_dict(d):
         return {v: k for k, v in d.items()}
 
-    with open('/data/hinz/data/CLEVR/CLEVR_v1.0/dic.pkl', 'rb') as f:
+    with open(os.path.join(cfg.DATASET.DATA_DIR, 'dic.pkl'), 'rb') as f:
         dictionaries = pickle.load(f)
     vocab = {}
     vocab['question_token_to_idx'] = dictionaries["word_dic"]
