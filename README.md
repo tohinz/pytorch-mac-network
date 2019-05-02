@@ -29,5 +29,5 @@ The basic implementation closely mirrors the parameters and config settings from
 **Results**:
 - We train the model on a NVIDIA GeForce RTX 2080 Ti.
 - The model with `MAX_STEPS=4/8/12/16` needs about 2.4 / 3.2 / 4.2 / 5.1 GB VRAM.
-- Training time is about 19/34/41/50 minutes for one epoch for the model with `MAX_STEPS=4,8,12,16`.
+- Training time is about 19/34/41/50 minutes for one epoch for the model with `MAX_STEPS=4/8/12/16`.
 - Our implementation reaches around 93-95% accuracy on the validation set after five epochs, 95-96% after ten epochs.
