@@ -1,0 +1,22 @@
+GPU_ID: '0'
+WORKERS: 8
+CUDA: True
+
+TRAIN:
+    FLAG: True
+    LEARNING_RATE: 0.0001
+    BATCH_SIZE: 64
+    MAX_EPOCHS: 25
+    SNAPSHOT_INTERVAL: 5
+    WEIGHT_INIT: "xavier_uniform"
+    EALRY_STOPPING: True
+    PATIENCE: 5
+    CLIP_GRADS: True
+    MAX_STEPS: 4
+    VAR_DROPOUT: True
+
+DATASET:
+    DATA_DIR: '/data/hinz/data/CLEVR/CLEVR_v1.0'
+
+
+
