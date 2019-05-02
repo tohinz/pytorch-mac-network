@@ -33,17 +33,10 @@ class ControlUnit(nn.Module):
         self.attn = nn.Linear(module_dim, 1)
         self.control_input = nn.Sequential(nn.Linear(module_dim, module_dim),
                                            nn.Tanh())
-        if cfg.TRAIN.controlInputUnshared:
-            self.control_input_u = nn.ModuleList()
-            for i in range(max_step):
-                self.control_input_u.append(nn.Linear(module_dim, module_dim))
-        else:
-            self.control_input_u = nn.Linear(module_dim, module_dim)
 
-        if self.cfg.TRAIN.controlFeedPrev:
-            self.concat = nn.Sequential(nn.Linear(module_dim * 2, module_dim),
-                                        nn.Tanh(),
-                                        nn.Linear(module_dim, module_dim))
+        self.control_input_u = nn.ModuleList()
+        for i in range(max_step):
+            self.control_input_u.append(nn.Linear(module_dim, module_dim))
 
         self.module_dim = module_dim
 
@@ -55,7 +48,7 @@ class ControlUnit(nn.Module):
         mask = (ones - mask) * (1e-30)
         return mask
 
-    def forward(self, question, context, control, question_lengths, step):
+    def forward(self, question, context, question_lengths, step):
         """
         Args:
             question: external inputs to control unit (the question vector).
@@ -69,21 +62,9 @@ class ControlUnit(nn.Module):
         """
         # compute interactions with question words
         question = self.control_input(question)
-        if self.cfg.TRAIN.controlInputUnshared:
-            question = self.control_input_u[step](question)
-        else:
-            question = self.control_input_u(question)
+        question = self.control_input_u[step](question)
 
         newContControl = question
-        if self.cfg.TRAIN.controlFeedPrev:
-            if self.cfg.TRAIN.controlFeedPrevAtt:
-                newContControl = control
-            else:
-                raise NotImplementedError
-            if self.cfg.TRAIN.controlFeedInputs:
-                newContControl = torch.cat((newContControl, question), -1)
-            newContControl = self.concat(newContControl)
-
         newContControl = torch.unsqueeze(newContControl, 1)
         interactions = newContControl * context
 
@@ -99,7 +80,7 @@ class ControlUnit(nn.Module):
         # apply soft attention to current context words
         next_control = (attn * context).sum(1)
 
-        return next_control, newContControl
+        return next_control
 
 
 class ReadUnit(nn.Module):
@@ -172,37 +153,11 @@ class WriteUnit(nn.Module):
     def __init__(self, cfg, module_dim):
         super().__init__()
         self.cfg = cfg
-        if cfg.TRAIN.writeSelfAtt:
-            self.control = nn.Linear(module_dim, module_dim)
-            self.attn = nn.Linear(module_dim, 1)
-            self.linear = nn.Linear(module_dim * 3, module_dim)
-        else:
-            self.linear = nn.Linear(module_dim * 2, module_dim)
-        if cfg.TRAIN.writeGate:
-            self.writeGate = nn.Sequential(nn.Linear(module_dim, module_dim),
-                                           nn.Sigmoid())
+        self.linear = nn.Linear(module_dim * 2, module_dim)
 
-    def forward(self, memory, info, control, contControl, allControls, allMemories):
-        if cfg.TRAIN.writeSelfAtt:
-            if cfg.TRAIN.writeSelfAttMod == "CONT":
-                selfControl = contControl
-            else:
-                selfControl = control
-            selfControl = self.control(selfControl)
-            interactions = allControls * selfControl
-            attn = self.attn(interactions).squeeze(-1)
-            attn = F.softmax(attn, 1).unsqueeze(-1)
-            selfSmry = (attn * allMemories).sum(1)
-
+    def forward(self, memory, info):
         newMemory = torch.cat([memory, info], -1)
-        if cfg.TRAIN.writeSelfAtt:
-            newMemory = torch.cat((newMemory, selfSmry), -1)
-
         newMemory = self.linear(newMemory)
-
-        if cfg.TRAIN.writeGate:
-            z = self.writeGate(control)
-            newMemory = newMemory * z + memory * (1 - z)
 
         return newMemory
 
@@ -216,17 +171,14 @@ class MACUnit(nn.Module):
         self.write = WriteUnit(cfg, module_dim)
 
         self.initial_memory = nn.Parameter(torch.zeros(1, module_dim))
-        self.initial_control = nn.Parameter(torch.zeros(1, module_dim))
 
         self.module_dim = module_dim
         self.max_step = max_step
 
     def zero_state(self, batch_size, question):
         initial_memory = self.initial_memory.expand(batch_size, self.module_dim)
-        if self.cfg.TRAIN.INIT_CTRL == "PRM":
-            initial_control = self.initial_control.expand(batch_size, self.module_dim)
-        else:
-            initial_control = question
+        initial_control = question
+
         if self.cfg.TRAIN.VAR_DROPOUT:
             memDpMask = generateVarDpMask((batch_size, self.module_dim), 0.85)
         else:
@@ -237,19 +189,14 @@ class MACUnit(nn.Module):
     def forward(self, context, question, knowledge, question_lengths):
         batch_size = question.size(0)
         control, memory, memDpMask = self.zero_state(batch_size, question)
-        all_controls = control.unsqueeze(1)
-        all_memories = memory.unsqueeze(1)
 
         for i in range(self.max_step):
             # control unit
-            control, contControl = self.control(question, context, control, question_lengths, i)
+            control = self.control(question, context, question_lengths, i)
             # read unit
             info = self.read(memory, knowledge, control, memDpMask)
             # write unit
-            memory = self.write(memory, info, control, contControl, all_controls, all_memories)
-
-            all_controls = torch.cat((all_controls, control.unsqueeze(1)), 1)
-            all_memories = torch.cat((all_memories, memory.unsqueeze(1)), 1)
+            memory = self.write(memory, info)
 
         return memory
 
@@ -261,10 +208,10 @@ class InputUnit(nn.Module):
         self.dim = module_dim
         self.cfg = cfg
 
-        self.stem = nn.Sequential(nn.Dropout(p=cfg.TRAIN.STEM_DROPOUT),
+        self.stem = nn.Sequential(nn.Dropout(p=0.18),
                                   nn.Conv2d(1024, module_dim, 3, 1, 1),
                                   nn.ELU(),
-                                  nn.Dropout(p=cfg.TRAIN.STEM_DROPOUT),
+                                  nn.Dropout(p=0.18),
                                   nn.Conv2d(module_dim, module_dim, kernel_size=3, stride=1, padding=1),
                                   nn.ELU())
 
@@ -275,7 +222,7 @@ class InputUnit(nn.Module):
         self.encoder_embed = nn.Embedding(vocab_size, wordvec_dim)
         self.encoder = nn.LSTM(wordvec_dim, rnn_dim, batch_first=True, bidirectional=bidirectional)
         self.embedding_dropout = nn.Dropout(p=0.15)
-        self.question_dropout = nn.Dropout(p=cfg.TRAIN.Q_DROPOUT)
+        self.question_dropout = nn.Dropout(p=0.08)
 
     def forward(self, image, question, question_len):
         b_size = question.size(0)
@@ -337,10 +284,6 @@ class MACNetwork(nn.Module):
         init_modules(self.modules(), w_init=self.cfg.TRAIN.WEIGHT_INIT)
         nn.init.uniform_(self.input_unit.encoder_embed.weight, -1.0, 1.0)
         nn.init.normal_(self.mac.initial_memory)
-        if self.cfg.TRAIN.INIT_CTRL == "PRM":
-            nn.init.normal_(self.mac.initial_control)
-        if cfg.TRAIN.writeGate:
-            nn.init.ones_(self.mac.write.writeGate[0].bias)
 
     def forward(self, image, question, question_len):
         # get image, word, and sentence embeddings

@@ -28,10 +28,9 @@ def parse_args():
     return args
 
 
-def set_logdir(config_file, max_steps):
+def set_logdir(max_steps):
     now = datetime.datetime.now(dateutil.tz.tzlocal())
-    config_file = config_file.split("/")[-1]
-    logdir = "data/{}_{}_{}".format(now, config_file, max_steps)
+    logdir = "data/{}_max_steps_{}".format(now, max_steps)
     mkdir_p(logdir)
     print("Saving output to: {}".format(logdir))
     code_dir = os.path.join(os.getcwd(), "code")
@@ -59,7 +58,7 @@ if __name__ == "__main__":
         torch.cuda.manual_seed_all(args.manualSeed)
 
     if cfg.TRAIN.FLAG:
-        logdir = set_logdir(args.cfg_file, cfg.TRAIN.MAX_STEPS)
+        logdir = set_logdir(cfg.TRAIN.MAX_STEPS)
         trainer = Trainer(logdir, cfg)
         trainer.train()
     else:
