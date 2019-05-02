@@ -1,4 +1,4 @@
-# mac-network-pytorch
+# Pytorch implementation of the MAC-Network
 
 This is a Pytorch implementation of the 2018 ICLR Paper [Compositional Attention Networks for Machine Reasoning](https://arxiv.org/abs/1803.03067) (MAC Network), based mostly on the [original implementation](https://github.com/stanfordnlp/mac-network) by the authors and partly (mainly question preprocessing) on the implementation by [rosinality](https://github.com/rosinality/mac-network-pytorch).
 
