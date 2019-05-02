@@ -11,7 +11,12 @@ Prepare dataset:
 - Download and extract [CLEVR v1.0 dataset](http://cs.stanford.edu/people/jcjohns/clevr/)
 - Preprocess question data:  `python preprocess.py [CLEVR directory]`
 - Extract image features with ResNet 101 as described in the original [Git](https://github.com/stanfordnlp/mac-network#feature-extraction)
-- Put extracted features and preprocessed question data into the `data` folder
+- Put extracted features and preprocessed question data into the `data` folder so you have the following files:
+    - `data/train_features.h5`
+    - `data/val_features.h5`
+    - `data/train.pkl`
+    - `data/val.pkl`
+    - `data/dic.pkl`
 
 To train:
 ```
