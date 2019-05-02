@@ -25,13 +25,10 @@ from config import cfg
 
 class ClevrDataset(data.Dataset):
     def __init__(self, data_dir, split='train'):
-        with open('/data/hinz/data/CLEVR/CLEVR_v1.0/{}.pkl'.format(split), 'rb') as f:
+
+        with open(os.path.join(data_dir, '{}.pkl'.format(split)), 'rb') as f:
             self.data = pickle.load(f)
-
-        self.data_dir = data_dir
-        self.split = split
-
-        self.img = h5py.File(os.path.join(self.data_dir, 'images/{}_features.h5'.format(split)), 'r')['features']
+        self.img = h5py.File(os.path.join(data_dir, '{}_features.h5'.format(split)), 'r')['features']
 
     def __getitem__(self, index):
         imgfile, question, answer, family = self.data[index]

@@ -13,7 +13,6 @@ TRAIN:
     PATIENCE: 5
     CLIP_GRADS: True
     MAX_STEPS: 4
-    VAR_DROPOUT: True
 
 DATASET:
     DATA_DIR: 'data/'
