@@ -22,6 +22,8 @@ To train:
 ```
 python code/main.py --cfg cfg/clevr_train_mac.yml --gpu 0
 ```
-The basic implementation closely mirrors the parameters and config settings from the original implementation's args1.txt, i.e. this line in the original [Git](https://github.com/stanfordnlp/mac-network#model-variants): `python main.py --expName "clevrExperiment" --train --testedNum 10000 --epochs 25 --netLength 4 @configs/args.txt`
+The number of reasoning steps can be changed through the config file (`TRAIN -> MAX-STEPS`) - default value is `4`.
+
+The basic implementation closely mirrors the parameters and config settings from the original implementation's args.txt, i.e. this line in the original [Git](https://github.com/stanfordnlp/mac-network#model-variants): `python main.py --expName "clevrExperiment" --train --testedNum 10000 --epochs 25 --netLength 4 @configs/args.txt`
 
 Our implementation reaches around 93-95% accuracy on the validation set after five epochs, 95-96% after ten epochs
