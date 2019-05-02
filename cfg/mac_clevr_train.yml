@@ -16,7 +16,7 @@ TRAIN:
     VAR_DROPOUT: True
 
 DATASET:
-    DATA_DIR: '/data/hinz/data/CLEVR/CLEVR_v1.0'
+    DATA_DIR: 'data/'
 
 
 
