@@ -76,7 +76,7 @@ class Trainer():
                                          shuffle=False, num_workers=cfg.WORKERS, collate_fn=collate_fn)
 
         # load model
-        self.vocab = load_vocab()
+        self.vocab = load_vocab(cfg)
         self.model, self.model_ema = mac.load_MAC(cfg, self.vocab)
         self.weight_moving_average(alpha=0)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
